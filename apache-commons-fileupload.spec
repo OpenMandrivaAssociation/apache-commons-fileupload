@@ -36,10 +36,10 @@ BuildRequires:    maven-surefire-maven-plugin
 
 
 Requires:         java >= 0:1.6.0
-Requires:         jpackage-utils
+Requires:         jpackage-utils >= 0:1.7.5
 Requires:         apache-commons-io
-Requires(post):   jpackage-utils
-Requires(postun): jpackage-utils
+Requires(post):   jpackage-utils >= 0:1.7.5
+Requires(postun): jpackage-utils >= 0:1.7.5
 
 BuildRoot:        %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
@@ -56,7 +56,7 @@ javax.servlet.http.HttpServletRequest
 %package javadoc
 Summary:          API documentation for %{name}
 Group:            Development/Java
-Requires:         jpackage-utils
+Requires:         jpackage-utils >= 0:1.7.5
 
 Obsoletes:        jakarta-%{short_name}-javadoc < 1:1.2.1-2
 
