@@ -3,7 +3,7 @@
 
 Name:             apache-%{short_name}
 Version:          1.2.2
-Release:          3
+Release:          2
 Summary:          This package provides an api to work with html file upload
 License:          ASL 2.0
 Group:            Development/Java
@@ -36,10 +36,10 @@ BuildRequires:    maven-surefire-maven-plugin
 
 
 Requires:         java >= 0:1.6.0
-Requires:         jpackage-utils >= 0:1.7.5
+Requires:         jpackage-utils
 Requires:         apache-commons-io
-Requires(post):   jpackage-utils >= 0:1.7.5
-Requires(postun): jpackage-utils >= 0:1.7.5
+Requires(post):   jpackage-utils
+Requires(postun): jpackage-utils
 
 BuildRoot:        %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
@@ -56,7 +56,7 @@ javax.servlet.http.HttpServletRequest
 %package javadoc
 Summary:          API documentation for %{name}
 Group:            Development/Java
-Requires:         jpackage-utils >= 0:1.7.5
+Requires:         jpackage-utils
 
 Obsoletes:        jakarta-%{short_name}-javadoc < 1:1.2.1-2
 
