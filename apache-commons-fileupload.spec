@@ -2,38 +2,26 @@
 %global short_name      commons-%{base_name}
 
 Name:             apache-%{short_name}
-Version:          1.2.2
-Release:          5
+Version:          1.3
+Release:          1
 Summary:          This package provides an api to work with html file upload
 License:          ASL 2.0
 Group:            Development/Java
 URL:              http://commons.apache.org/%{base_name}/
 Source0:          http://www.apache.org/dist/commons/%{base_name}/source/%{short_name}-%{version}-src.tar.gz
+Source1:	  MANIFEST.MF
 # Depmap needed to bend javax.servlet:servlet-api to tomcat6
-Source1:          %{short_name}.depmap
 BuildArch:        noarch
 
 # Portlets are not in Fedora yet
 Patch0:           %{name}-remove-portlet.patch
+Patch1:		  commons-fileupload-1.3-antbuild.patch
 
 BuildRequires:    java-devel >= 0:1.6.0
 BuildRequires:    junit >= 0:3.8.1
-BuildRequires:    servlet25
+BuildRequires:    tomcat-servlet-3.0-api
 BuildRequires:    apache-commons-io
-BuildRequires:    maven-antrun-plugin
-BuildRequires:    maven-assembly-plugin
-BuildRequires:    maven-compiler-plugin
-BuildRequires:    maven-doxia-sitetools
-BuildRequires:    maven-idea-plugin
-BuildRequires:    maven-install-plugin
-BuildRequires:    maven-jar-plugin
-BuildRequires:    maven-javadoc-plugin
-BuildRequires:    maven-plugin-bundle
-BuildRequires:    maven-release-plugin
-BuildRequires:    maven-resources-plugin
-#Should be replaced by maven-surefire-plugin after f15 branch
-BuildRequires:    maven-surefire-maven-plugin
-
+BuildRequires:    ant
 
 Requires:         java >= 0:1.6.0
 Requires:         jpackage-utils
@@ -71,22 +59,17 @@ sed -i 's/\r//' LICENSE.txt
 sed -i 's/\r//' NOTICE.txt
 
 # Remove portlet stuff
-%patch0 -p0
-rm -rf src/java/org/apache/commons/fileupload/portlet
-rm -f src/test/org/apache/commons/fileupload/*Portlet*
+#%patch0 -p0
+%patch1 -p0
+
+rm -rf src/main/java/org/apache/commons/fileupload/portlet
+rm -f src/test/java/org/apache/commons/fileupload/*Portlet*
 
 # -----------------------------------------------------------------------------
 
 %build
-export MAVEN_REPO_LOCAL=$(pwd)/.m2/repository
-mkdir -p $MAVEN_REPO_LOCAL
-
-mvn-jpp \
-        -e \
-        -Dmaven2.jpp.mode=true \
-        -Dmaven2.jpp.depmap.file="%{SOURCE1}" \
-        -Dmaven.repo.local=$MAVEN_REPO_LOCAL \
-        install javadoc:javadoc
+export CLASSPATH=$(build-classpath commons-io tomcat-servlet-api-3.0)
+ant -Dmaven.mode.offline=true -Dmaven.test.skip=true -Dcommons.manifestfile="%{SOURCE1}" -Dmaven.build.finalName=%{short_name}-%{version} package javadoc
 
 # -----------------------------------------------------------------------------
 
