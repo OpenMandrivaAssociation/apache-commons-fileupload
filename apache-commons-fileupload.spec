@@ -1,35 +1,44 @@
+%{?_javapackages_macros:%_javapackages_macros}
 %global base_name       fileupload
 %global short_name      commons-%{base_name}
 
 Name:             apache-%{short_name}
 Version:          1.3
-Release:          5
+Release:          4.0%{?dist}
 Summary:          This package provides an api to work with html file upload
 License:          ASL 2.0
-Group:            Development/Java
+
 URL:              http://commons.apache.org/%{base_name}/
 Source0:          http://www.apache.org/dist/commons/%{base_name}/source/%{short_name}-%{version}-src.tar.gz
-Source1:	  MANIFEST.MF
-# Depmap needed to bend javax.servlet:servlet-api to tomcat6
 BuildArch:        noarch
 
-# Portlets are not in Fedora yet
-Patch0:           %{name}-remove-portlet.patch
-Patch1:		  commons-fileupload-1.3-antbuild.patch
+Patch1:           %{name}-portlet20.patch
 
-BuildRequires:    java-devel >= 0:1.6.0
+BuildRequires:    java-devel >= 1:1.6.0
+BuildRequires:    maven-local
 BuildRequires:    junit >= 0:3.8.1
-BuildRequires:    tomcat-servlet-3.0-api
+BuildRequires:    servlet
 BuildRequires:    apache-commons-io
-BuildRequires:    ant
+BuildRequires:    maven-antrun-plugin
+BuildRequires:    maven-assembly-plugin
+BuildRequires:    maven-compiler-plugin
+BuildRequires:    maven-doxia-sitetools
+BuildRequires:    maven-install-plugin
+BuildRequires:    maven-jar-plugin
+BuildRequires:    maven-javadoc-plugin
+BuildRequires:    maven-plugin-bundle
+BuildRequires:    maven-release-plugin
+BuildRequires:    maven-resources-plugin
+%if 0%{?fedora}
+BuildRequires:    portlet-2.0-api
+%endif
 
-Requires:         java >= 0:1.6.0
+Requires:         java >= 1:1.6.0
 Requires:         jpackage-utils
 Requires:         apache-commons-io
-Requires(post):   jpackage-utils
-Requires(postun): jpackage-utils
-
-BuildRoot:        %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+%if 0%{?fedora}
+Requires:         portlet-2.0-api
+%endif
 
 Provides:         jakarta-%{short_name} = 1:%{version}-%{release}
 Obsoletes:        jakarta-%{short_name} < 1:1.2.1-2
@@ -43,7 +52,7 @@ javax.servlet.http.HttpServletRequest
 
 %package javadoc
 Summary:          API documentation for %{name}
-Group:            Development/Java
+
 Requires:         jpackage-utils
 
 Obsoletes:        jakarta-%{short_name}-javadoc < 1:1.2.1-2
@@ -58,74 +67,184 @@ This package contains the API documentation for %{name}.
 sed -i 's/\r//' LICENSE.txt
 sed -i 's/\r//' NOTICE.txt
 
-# Remove portlet stuff
-#%patch0 -p0
-%patch1 -p0
-
-rm -rf src/main/java/org/apache/commons/fileupload/portlet
-rm -f src/test/java/org/apache/commons/fileupload/*Portlet*
+%if 0%{?fedora}
+# fix gId
+sed -i "s|<groupId>portlet-api</groupId>|<groupId>javax.portlet</groupId>|" pom.xml
+%else
+# Non-Fedora: remove portlet stuff
+%pom_remove_dep portlet-api:portlet-api
+%pom_xpath_remove pom:properties/pom:commons.osgi.import
+%pom_xpath_remove pom:properties/pom:commons.osgi.dynamicImport
+rm -r src/main/java/org/apache/commons/fileupload/portlet
+rm src/test/java/org/apache/commons/fileupload/*Portlet*
+%endif
 
 # -----------------------------------------------------------------------------
 
 %build
-export CLASSPATH=$(build-classpath commons-io tomcat-servlet-api-3.0)
-ant -Dmaven.mode.offline=true -Dmaven.test.skip=true -Dcommons.manifestfile="%{SOURCE1}" -Dmaven.build.finalName=%{short_name}-%{version} package javadoc
-
+# fix build with generics support
+# tests fail to compile because they use an obsolete version of servlet API (2.4)
+mvn-rpmbuild -Dmaven.test.skip=true -Dmaven.compile.source=1.5 -Dmaven.compile.target=1.5 install javadoc:javadoc
 # -----------------------------------------------------------------------------
 
 %install
-rm -rf %{buildroot}
-
 # jars
-install -d -m 755 %{buildroot}%{_javadir}
-install -p -m 644 target/%{short_name}-%{version}.jar %{buildroot}%{_javadir}/%{name}-%{version}.jar
-pushd %{buildroot}%{_javadir}
-for jar in *-%{version}*; do
-    ln -sf ${jar} `echo $jar| sed "s|apache-||g"`
-    ln -sf ${jar} `echo $jar| sed "s|-%{version}||g"`
-    ln -sf ${jar} `echo $jar| sed "s|apache-\(.*\)-%{version}|\1|g"`
-done
+install -d -m 755 $RPM_BUILD_ROOT%{_javadir}
+install -p -m 644 target/%{short_name}-%{version}.jar $RPM_BUILD_ROOT%{_javadir}/%{name}.jar
+pushd $RPM_BUILD_ROOT%{_javadir}
+    ln -sf %{name}.jar %{short_name}.jar
 popd # come back from javadir
 
 # javadoc
-install -d -m 755 %{buildroot}%{_javadocdir}/%{name}-%{version}
-cp -pr target/site/apidocs/* %{buildroot}%{_javadocdir}/%{name}-%{version}
-ln -s %{name}-%{version} %{buildroot}%{_javadocdir}/%{name}
+install -d -m 755 $RPM_BUILD_ROOT%{_javadocdir}/%{name}
+cp -pr target/site/apidocs/* $RPM_BUILD_ROOT%{_javadocdir}/%{name}
 
 # pom
-install -d -m 755 %{buildroot}%{_mavenpomdir}
-install -pm 644 pom.xml %{buildroot}%{_mavenpomdir}/JPP-%{short_name}.pom
-%add_to_maven_depmap org.apache.commons %{short_name} %{version} JPP %{short_name}
+install -d -m 755 $RPM_BUILD_ROOT%{_mavenpomdir}
+install -pm 644 pom.xml $RPM_BUILD_ROOT%{_mavenpomdir}/JPP-%{short_name}.pom
+%add_maven_depmap JPP-%{short_name}.pom %{short_name}.jar -a "org.apache.commons:%{short_name}"
 
-# following line is only for backwards compatibility. New packages
-# should use proper groupid org.apache.commons and also artifactid
-%add_to_maven_depmap %{short_name} %{short_name} %{version} JPP %{short_name}
+%pre javadoc
+# workaround for rpm bug, can be removed in F-20
+[ $1 -gt 1 ] && [ -L %{_javadocdir}/%{name} ] && \
+rm -rf $(readlink -f %{_javadocdir}/%{name}) %{_javadocdir}/%{name} || :
 
-# -----------------------------------------------------------------------------
-
-%clean
-rm -rf %{buildroot}
-
-# -----------------------------------------------------------------------------
-
-%post
-%update_maven_depmap
-
-%postun
-%update_maven_depmap
 
 %files
-%defattr(-,root,root,-)
 %doc LICENSE.txt NOTICE.txt
-%{_javadir}/*
-%{_mavendepmapfragdir}/*
-%{_mavenpomdir}/*.pom
+%{_javadir}/%{name}.jar
+%{_javadir}/%{short_name}.jar
+%{_mavendepmapfragdir}/%{name}
+%{_mavenpomdir}/JPP-%{short_name}.pom
 
 %files javadoc
-%defattr(-,root,root,-)
 %doc LICENSE.txt NOTICE.txt
-%doc %{_javadocdir}/%{name}-%{version}
 %doc %{_javadocdir}/%{name}
 
 # -----------------------------------------------------------------------------
 
+%changelog
+* Sat Aug 03 2013 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1.3-4
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_20_Mass_Rebuild
+
+* Mon Apr 29 2013 Mikolaj Izdebski <mizdebsk@redhat.com> - 1.3-3
+- Remove unneeded BR: maven-idea-plugin
+
+* Thu Apr 18 2013 Severin Gehwolf <sgehwolf@redhat.com> 1.3-2
+- Use pom macros over patch.
+- Remove surefire maven plugin since tests are skipped anyway.
+
+* Thu Mar 28 2013 Michal Srb <msrb@redhat.com> - 1.3-1
+- Update to upstream version 1.3
+
+* Mon Mar 11 2013 Mikolaj Izdebski <mizdebsk@redhat.com> - 1.2.2-11
+- Disable tests (they use obsolete servlet API 2.4)
+- Resolves: rhbz#913878
+
+* Thu Feb 14 2013 Mikolaj Izdebski <mizdebsk@redhat.com> - 1.2.2-10
+- Add missing BR: maven-local
+
+* Wed Feb 13 2013 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1.2.2-9
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_19_Mass_Rebuild
+
+* Mon Nov 26 2012 Severin Gehwolf <sgehwolf@redhat.com> 1.2.2-8
+- Conditionally build portlet-2.0-api support in Fedora only
+
+* Wed Jul 18 2012 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1.2.2-7
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_18_Mass_Rebuild
+
+* Mon Jun 04 2012 Stanislav Ochotnicky <sochotnicky@redhat.com> - 1.2.2-6
+- Fix up patches to apply, cleanup spec old coments
+- Fix surefire plugin dependency to use new name
+
+* Tue May 29 2012 gil cattaneo <puntogil@libero.it> 1.2.2-5
+- Add portlet-2.0-api support (required by springframework).
+
+* Fri Mar  2 2012 Stanislav Ochotnicky <sochotnicky@redhat.com> 1.2.2-4
+- Fix build and update to latest guidelines
+
+* Thu Jan 12 2012 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1.2.2-3
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_17_Mass_Rebuild
+
+* Mon Feb 07 2011 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1.2.2-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_15_Mass_Rebuild
+
+* Wed Oct 20 2010 Chris Spike <chris.spike@arcor.de> 1.2.2-1
+- Updated to 1.2.2
+- Fixed License tag
+- tomcat5 -> tomcat6 BRs/Rs
+- Fixed wrong EOL encodings
+
+* Thu Jul  8 2010 Stanislav Ochotnicky <sochotnicky@redhat.com> - 1.2.1-4
+- Add license to javadoc subpackage
+
+* Thu May 20 2010 Stanislav Ochotnicky <sochotnicky@redhat.com> - 1.2.1-3
+- Added Requires on jpackage-utils for javadoc
+
+* Thu May 20 2010 Stanislav Ochotnicky <sochotnicky@redhat.com> - 1.2.1-2
+- Rename package (jakarta-commons-fileupload->apache-commons-fileupload)
+- Re-did whole spec file
+
+* Wed Jan  6 2010 Mary Ellen Foster <mefoster at gmail.com> - 1:1.2.1-1
+- Update to newest version; include Maven metadata
+
+* Fri Jul 24 2009 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1:1.0-9.3
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_12_Mass_Rebuild
+
+* Wed Feb 25 2009 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1:1.0-8.3
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_11_Mass_Rebuild
+
+* Wed Jul  9 2008 Tom "spot" Callaway <tcallawa@redhat.com> - 1:1.0-7.3
+- drop repotag
+- fix license tag
+
+* Tue Feb 19 2008 Fedora Release Engineering <rel-eng@fedoraproject.org> - 1:1.0-7jpp.2
+- Autorebuild for GCC 4.3
+
+* Tue Apr 17 2007 Permaine Cheung <pcheung@redhat.com> - 1:1.0-6jpp.2
+- Update spec file as per fedora review
+
+* Thu Aug 10 2006 Deepak Bhole <dbhole@redhat.com> - 1:1.0-6jpp.1
+- Added missing requirements.
+
+* Thu Aug 10 2006 Karsten Hopp <karsten@redhat.de> 1.0-5jpp_3fc
+- Requires(post/postun): coreutils
+
+* Sat Jul 22 2006 Jakub Jelinek <jakub@redhat.com> - 1:1.0-5jpp_2fc
+- Rebuilt
+
+* Thu Jul 20 2006 Deepak Bhole <dbhole@redhat.com> - 1:1.0-5jpp_1fc
+- Added conditional native compilation.
+
+* Wed Apr 26 2006 Fernando Nasser <fnasser@redhat.com> - 1:1.0-4jpp
+- First JPP 1.7 build
+
+* Fri Oct 22 2004 Fernando Nasser <fnasser@redhat.com> - 1:1.0-3jpp
+- Patch to build with servletapi5
+- Add missing dependency on ant-junit
+
+* Sun Aug 23 2004 Randy Watler <rwatler at finali.com> - 1:1.0-2jpp
+- Rebuild with ant-1.6.2
+
+* Sat Jun 28 2003 Ville Skyttä <ville.skytta at iki.fi> - 1:1.0-1jpp
+- Update to 1.0.
+- Add Epochs to dependencies.
+- Nuke beanutils dependency.
+- Versionless javadoc dir symlinks.
+
+* Tue Mar 25 2003 Nicolas Mailhot <Nicolas.Mailhot (at) JPackage.org> - 1:1.0-0.beta1.4jpp
+- for jpackage-utils 1.5
+
+* Mon Mar 10 2003 Henri Gomez <hgomez@users.sourceforge.net> - 1:1.0-0.beta1.3jpp
+- rebuild with correct ant (avoid corrupted archive)
+
+* Fri Mar 07 2003 Henri Gomez <hgomez@users.sourceforge.net> - 1:1.0-0.beta1.2jpp
+- replace servlet23 requirement by servlet4api
+
+* Wed Feb 26 2003 Ville Skyttä <ville.skytta at iki.fi> - 1:1.0-0.beta1.1jpp
+- Update to 1.0 beta 1 (no code changes from cvs20030115).
+- Fix requirements.
+
+* Wed Jan 15 2003 Henri Gomez <hgomez@users.sourceforge.net> 1.0-1jpp
+- 1.0 (cvs 20030115)
+- first jPackage release

@@ -1,0 +1,65 @@
+diff --git a/src/test/org/apache/commons/fileupload/MockPortletRequest.java b/src/test/org/apache/commons/fileupload/MockPortletRequest.java
+index 28cda7a..9e4e4a0 100644
+--- a/src/test/org/apache/commons/fileupload/MockPortletRequest.java
++++ b/src/test/org/apache/commons/fileupload/MockPortletRequest.java
+@@ -27,6 +27,7 @@ import javax.portlet.PortletPreferences;
+ import javax.portlet.PortletRequest;
+ import javax.portlet.PortletSession;
+ import javax.portlet.WindowState;
++import javax.servlet.http.Cookie;
+ 
+ /**
+  * A mock portlet request, useful for unit testing and offline utilities
+@@ -312,5 +313,24 @@ public class MockPortletRequest implements PortletRequest
+     {
+         return null;
+     }
++
++    public Map<String, String[]> getPublicParameterMap() {
++        // TODO
++        throw new UnsupportedOperationException("Not supported.");
++    }
++
++    public Map<String, String[]> getPrivateParameterMap() {
++        // TODO
++        throw new UnsupportedOperationException("Not supported.");
++    }
+     
++    public Cookie[] getCookies() {
++        // TODO
++        throw new UnsupportedOperationException("Not supported.");
++    }
++
++    public String getWindowID() {
++        // TODO
++        throw new UnsupportedOperationException("Not supported.");
++    }
+ }
+diff --git a/src/test/org/apache/commons/fileupload/MockPortletSession.java b/src/test/org/apache/commons/fileupload/MockPortletSession.java
+index 76f57c2..aa0b967 100644
+--- a/src/test/org/apache/commons/fileupload/MockPortletSession.java
++++ b/src/test/org/apache/commons/fileupload/MockPortletSession.java
+@@ -18,6 +18,7 @@ package org.apache.commons.fileupload;
+ 
+ import java.util.Enumeration;
+ import java.util.Hashtable;
++import java.util.Map;
+ import javax.portlet.PortletContext;
+ import javax.portlet.PortletSession;
+ 
+@@ -168,4 +169,15 @@ public class MockPortletSession implements PortletSession
+         // TODO Auto-generated method stub
+         return null;
+     }
++
++    public Map<String, Object> getAttributeMap(int scope) {
++        // TODO
++        throw new UnsupportedOperationException("Not supported.");
++    }
++
++    public Map<String, Object> getAttributeMap() {
++        // TODO
++        throw new UnsupportedOperationException("Not supported.");
++    }
++
+ }
