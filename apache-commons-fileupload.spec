@@ -5,16 +5,14 @@
 %global short_name      commons-%{base_name}
 
 Name:             apache-%{short_name}
-Version:          1.3
-Release:          4.1%{?dist}
+Version:          1.3.1
+Release:          5.1
 Summary:          This package provides an api to work with html file upload
 License:          ASL 2.0
-
+Group:            Development/Java
 URL:              http://commons.apache.org/%{base_name}/
 Source0:          http://www.apache.org/dist/commons/%{base_name}/source/%{short_name}-%{version}-src.tar.gz
 BuildArch:        noarch
-
-Patch1:           %{name}-portlet20.patch
 
 BuildRequires:    java-devel >= 1:1.6.0
 BuildRequires:    maven-local
@@ -35,15 +33,12 @@ BuildRequires:    maven-resources-plugin
 BuildRequires:    portlet-2.0-api
 %endif
 
-Requires:         java >= 1:1.6.0
+Requires:         java-headless >= 1:1.6.0
 Requires:         jpackage-utils
 Requires:         apache-commons-io
 %if 0%{?fedora}
 Requires:         portlet-2.0-api
 %endif
-
-Provides:         jakarta-%{short_name} = 1:%{version}-%{release}
-Obsoletes:        jakarta-%{short_name} < 1:1.2.1-2
 
 %description
 The javax.servlet package lacks support for rfc 1867, html file
@@ -54,10 +49,8 @@ javax.servlet.http.HttpServletRequest
 
 %package javadoc
 Summary:          API documentation for %{name}
-
+Group:            Documentation
 Requires:         jpackage-utils
-
-Obsoletes:        jakarta-%{short_name}-javadoc < 1:1.2.1-2
 
 %description javadoc
 This package contains the API documentation for %{name}.
@@ -106,18 +99,10 @@ install -d -m 755 $RPM_BUILD_ROOT%{_mavenpomdir}
 install -pm 644 pom.xml $RPM_BUILD_ROOT%{_mavenpomdir}/JPP-%{short_name}.pom
 %add_maven_depmap JPP-%{short_name}.pom %{short_name}.jar -a "org.apache.commons:%{short_name}"
 
-%pre javadoc
-# workaround for rpm bug, can be removed in F-20
-[ $1 -gt 1 ] && [ -L %{_javadocdir}/%{name} ] && \
-rm -rf $(readlink -f %{_javadocdir}/%{name}) %{_javadocdir}/%{name} || :
-
-
-%files
+%files -f .mfiles
 %doc LICENSE.txt NOTICE.txt
 %{_javadir}/%{name}.jar
 %{_javadir}/%{short_name}.jar
-%{_mavendepmapfragdir}/%{name}
-%{_mavenpomdir}/JPP-%{short_name}.pom
 
 %files javadoc
 %doc LICENSE.txt NOTICE.txt
@@ -126,6 +111,26 @@ rm -rf $(readlink -f %{_javadocdir}/%{name}) %{_javadocdir}/%{name} || :
 # -----------------------------------------------------------------------------
 
 %changelog
+* Tue Oct 14 2014 Mikolaj Izdebski <mizdebsk@redhat.com> - 1.3.1-5
+- Remove legacy Obsoletes/Provides for jakarta-commons
+
+* Sat Jun 07 2014 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1.3.1-4
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_21_Mass_Rebuild
+
+* Wed May 21 2014 Mikolaj Izdebski <mizdebsk@redhat.com> - 1.3.1-3
+- Use .mfiles generated during build
+
+* Tue Mar 04 2014 Stanislav Ochotnicky <sochotnicky@redhat.com> - 1.3.1-2
+- Use Requires: java-headless rebuild (#1067528)
+
+* Mon Feb 10 2014 Mikolaj Izdebski <mizdebsk@redhat.com> - 1.3.1-1
+- Update to upstream version 1.3.1
+- Remove unused patched
+
+* Thu Feb  6 2014 Mikolaj Izdebski <mizdebsk@redhat.com> - 1.3-5
+- Add backported upstream patch to fix DoS vulnerability
+- Resolves: CVE-2014-0050
+
 * Sat Aug 03 2013 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1.3-4
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_20_Mass_Rebuild
 
@@ -250,3 +255,4 @@ rm -rf $(readlink -f %{_javadocdir}/%{name}) %{_javadocdir}/%{name} || :
 * Wed Jan 15 2003 Henri Gomez <hgomez@users.sourceforge.net> 1.0-1jpp
 - 1.0 (cvs 20030115)
 - first jPackage release
+
