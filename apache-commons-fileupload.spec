@@ -6,7 +6,7 @@
 
 Name:             apache-%{short_name}
 Version:          1.3.1
-Release:          5.2
+Release:          5.3
 Summary:          This package provides an api to work with html file upload
 License:          ASL 2.0
 Group:            Development/Java
