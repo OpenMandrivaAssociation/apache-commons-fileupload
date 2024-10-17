@@ -10,7 +10,7 @@ Release:          5.3
 Summary:          This package provides an api to work with html file upload
 License:          ASL 2.0
 Group:            Development/Java
-URL:              http://commons.apache.org/%{base_name}/
+URL:              https://commons.apache.org/%{base_name}/
 Source0:          http://www.apache.org/dist/commons/%{base_name}/source/%{short_name}-%{version}-src.tar.gz
 BuildArch:        noarch
 
